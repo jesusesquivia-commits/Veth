@@ -96,12 +96,31 @@ def existing_contact(token, location_id, email):
     return res.get("contact")
 
 
+def split_name(p):
+    """First/last name from Woodpecker, falling back to splitting a full-name field."""
+    first = (p.get("first_name") or "").strip()
+    last = (p.get("last_name") or "").strip()
+    full = (p.get("name") or p.get("full_name") or "").strip()
+    if not first and not last and full:
+        first, _, last = full.partition(" ")
+    elif first and not last and " " in first:
+        first, _, last = first.partition(" ")
+    return first, last.strip()
+
+
+def describe(contact):
+    name = " ".join(x for x in (contact.get("firstName"), contact.get("lastName")) if x) or "(no name in Woodpecker)"
+    extras = [f"{k}={contact[k]}" for k in ("companyName", "phone") if contact.get(k)]
+    return f"{name} <{contact['email']}>" + (f" [{', '.join(extras)}]" if extras else "")
+
+
 def to_ghl_contact(p, location_id):
+    first, last = split_name(p)
     fields = {
         "locationId": location_id,
-        "email": p.get("email"),
-        "firstName": p.get("first_name"),
-        "lastName": p.get("last_name"),
+        "email": p["email"].strip().lower(),
+        "firstName": first,
+        "lastName": last,
         "phone": p.get("phone"),
         "companyName": p.get("company"),
         "website": p.get("website"),
@@ -132,16 +151,17 @@ def main():
             if existing and tag in (existing.get("tags") or []):
                 skipped += 1
                 continue
+            contact = to_ghl_contact(p, location_id)
             if args.dry_run:
-                print(f"[dry-run] would sync {email} ({p.get('company') or '-'})")
+                print(f"[dry-run] would sync {describe(contact)}")
                 created += 1
                 continue
-            res = http("POST", f"{GHL_BASE}/contacts/upsert", ghl_headers(token), to_ghl_contact(p, location_id))
+            res = http("POST", f"{GHL_BASE}/contacts/upsert", ghl_headers(token), contact)
             contact_id = (res or {}).get("contact", {}).get("id")
             if not contact_id:
                 raise RuntimeError(f"upsert returned no contact id: {res}")
             http("POST", f"{GHL_BASE}/contacts/{contact_id}/tags", ghl_headers(token), {"tags": [tag]})
-            print(f"synced {email} -> {contact_id}")
+            print(f"synced {describe(contact)} -> {contact_id}")
             created += 1
         except Exception as e:  # keep going; report at the end
             failed += 1
