@@ -1,0 +1,33 @@
+name: Woodpecker -> GoHighLevel sync
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # every 30 minutes
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (don't write to GoHighLevel)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: woodpecker-to-ghl
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Sync interested prospects
+        env:
+          WOODPECKER_API_KEY: ${{ secrets.WOODPECKER_API_KEY }}
+          GHL_TOKEN: ${{ secrets.GHL_TOKEN }}
+          GHL_LOCATION_ID: ${{ secrets.GHL_LOCATION_ID }}
+          GHL_TAG: ${{ vars.GHL_TAG }}
+          WOODPECKER_CAMPAIGNS: ${{ vars.WOODPECKER_CAMPAIGNS }}
+        run: python scripts/woodpecker_to_ghl.py ${{ inputs.dry_run && '--dry-run' || '' }}
