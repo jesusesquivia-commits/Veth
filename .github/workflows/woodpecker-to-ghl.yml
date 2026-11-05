@@ -2,7 +2,7 @@ name: Woodpecker -> GoHighLevel sync
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # every 30 minutes
+    - cron: "*/30 * * * *"   # every 30 minutes (Woodpecker -> GHL)
   workflow_dispatch:
     inputs:
       dry_run:
