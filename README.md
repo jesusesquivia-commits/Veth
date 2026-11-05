@@ -19,3 +19,5 @@ Runs every 30 minutes via `.github/workflows/woodpecker-to-ghl.yml`, or manually
 Optional variables: `GHL_TAG` (default `woodpecker-interested`), `WOODPECKER_CAMPAIGNS` (comma-separated campaign IDs).
 
 Local run: `WOODPECKER_API_KEY=… GHL_TOKEN=… GHL_LOCATION_ID=… python scripts/woodpecker_to_ghl.py --dry-run`
+
+**First run:** Actions → "Woodpecker → GoHighLevel sync" → Run workflow → tick *Dry run* → check the log, then run again without it.
